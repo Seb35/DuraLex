@@ -25,7 +25,7 @@ def parse_amendment(data, parent):
     subject = data['sujet']
     text = clean_html(data['texte'])
 
-    tokens = lexer.tokenize(subject + '\n' + text)
+    tokens, indices = lexer.tokenize(subject + '\n' + text)
     node = create_node(parent, {
         'type': 'amendment',
         'id': data['numero'],

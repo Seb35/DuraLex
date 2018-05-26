@@ -59,7 +59,15 @@ def tokenize(text):
     tokens = TOKEN_DELIMITERS.split(text)
     # remove empty strings
     tokens = [s for s in tokens if s != '']
-    return tokens
+
+    # compute index
+    i = 0
+    indices = []
+    for t in tokens:
+        indices.append( i )
+        i += len( t )
+
+    return tokens, indices
 
 def skip_tokens(tokens, i, f):
     while i < len(tokens) and f(tokens[i]):

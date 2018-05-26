@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding=utf-8 -*-
 
 import codecs
@@ -10,11 +10,13 @@ import argparse
 import requests
 
 sys.path.insert(0, os.path.join(os.path.realpath(os.path.dirname(__file__)), '..'))
+sys.path.insert(0, os.path.join(os.path.realpath(os.path.dirname(__file__)), '..', '..', 'metslesliens'))
 
 import duralex.alinea_parser
 import duralex.bill_parser
 import duralex.amendment_parser
 import duralex.diff_parser
+import duralex.tree
 from duralex.DeleteEmptyChildrenVisitor import DeleteEmptyChildrenVisitor
 from duralex.DeleteParentVisitor import DeleteParentVisitor
 from duralex.DeleteUUIDVisitor import DeleteUUIDVisitor
@@ -45,13 +47,20 @@ def handle_data(data, args):
         tree = duralex.tree.create_node(None, {})
         duralex.diff_parser.parse(data, tree)
     else:
-        bill_data = duralex.bill_parser.parse_bill(data, args.url)
+        if not args.json:
+            bill_data = duralex.bill_parser.parse_bill(data, args.url)
+        else:
+            bill_data = json.loads(data)
         tree = duralex.tree.create_node(None, {})
         for field in ['id', 'type', 'legislature', 'url', 'description', 'date', 'place']:
             if field in bill_data:
                 tree[field] = bill_data[field]
 
         duralex.alinea_parser.parse(bill_data, tree)
+
+        #printable_tree = duralex.tree.copy_node(tree)
+        #DeleteParentVisitor().visit(printable_tree)
+        #sys.stdout.write( json.dumps( printable_tree, sort_keys=True, indent=2, ensure_ascii=False ) + '\n' )
 
         if args.amendments:
             if args.amendments == '-':
@@ -91,6 +100,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(prog='duralex')
     parser.add_argument('--file', help='the path of the bill to process', type=argparse.FileType('r'), default='-')
     parser.add_argument('--url', help='the URL of the bill to process')
+    parser.add_argument('--json', help='the JSON file given by the-law-factory-parser')
     parser.add_argument('--quiet', action='store_true', help='no stdout output')
     parser.add_argument('--uuid', action='store_true', help='add a unique ID on each node')
     parser.add_argument('--amendments', nargs='?', const='-', default=False, help='fetch and parse amendements')
@@ -100,7 +110,10 @@ def main(argv=None):
 
     if args.url:
         res = requests.get(args.url)
-        data = decode(res.content, res.apparent_encoding)
+        data = decode(res.content, 'ISO-8859-1')
+    elif args.json:
+        with open( args.json, 'r' ) as f:
+            data = decode(f.read())
     elif args.file:
         data = decode(args.file.read())
 
